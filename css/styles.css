@@ -52,6 +52,7 @@ html {
   line-height: 1.15;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  height: 100%;
 }
 
 article, aside, figcaption, figure, footer, header, hgroup, main, nav, section {
@@ -66,7 +67,8 @@ body {
   line-height: 1.5;
   color: #212529;
   text-align: left;
-  background-color: #fff;
+  background-color: #2c3e50;
+  height: 100%;
 }
 
 [tabindex="-1"]:focus:not(:focus-visible) {
