@@ -1,0 +1,46 @@
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>Encryptor</title>
+		<script src="./Encryptor_files/jquery-1.11.1.min.js"></script><style type="text/css"></style>
+		<script src="./Encryptor_files/aes.js"></script>
+		<script src="./Encryptor_files/encryptor.js"></script>
+		<link rel="stylesheet" type="text/css" href="./Encryptor_files/encryptor.css">
+		<meta name="author" content="Shivanshu Goyal">
+	</head>
+	<body>
+		<div id="mainContainer">
+			<div id="inputContainer">
+				<div id="inputDiv">
+					<p id="inputBoxDesc">Text to Encrypt</p>
+					<textarea id="inputBox"></textarea>
+				</div>
+				<div id="outputDiv">
+					<p id="outputBoxDesc">Encrypted Text</p>
+					<textarea id="outputBox" readonly=""></textarea>
+				</div>
+				<div id="passwordDiv">
+					<div>
+						<div class="passwordDesc">Password: </div>
+						<input type="password" id="passwordBox" class="textboxClass">
+					</div>
+					
+					<div>
+						<div id="passwordReenterDescId" class="passwordDesc">Reenter Password: </div>
+						<input type="password" id="passwordReenterBox" class="textboxClass">
+					</div>
+				</div>
+				<div id="optionsDiv">
+				</div>
+				<div id="submitDiv">
+					<button type="button" id="submitButton" onclick="onSubmitButtonClick()">Encrypt</button>
+				</div>
+			</div>
+
+			<div id="switchAroundDiv" onclick="switchRoles()">
+				<img src="./Encryptor_files/arrow-swap.svg" width="50" height="50">
+			</div>
+
+		</div>
+	</body>
+</html>
