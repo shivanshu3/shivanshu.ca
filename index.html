@@ -1,28 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="Shivanshu Goyal's Website" />
-        <meta name="author" content="Shivanshu Goyal" />
-        <title>Shivanshu Goyal</title>
-        <!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="favicon.ico" />
-        <link rel="stylesheet" href="styles.css">
-    </head>
-    <body>
-        <div class="container">
-            <img src="shivanshu.jpg" alt="Profile picture of Shivanshu Goyal" class="profile-photo">
-            <h1>SHIVANSHU GOYAL</h1>
-            <h2>Software Developer @ Microsoft</h2>
-            <div class="links">
-                <a href="https://github.com/shivanshu3" target="_blank">
-                    <img src="github-logo.png" alt="GitHub" class="logo">
-                </a>
-                <a href="https://www.linkedin.com/in/shivanshu3" target="_blank">
-                    <img src="linkedin-logo.png" alt="LinkedIn" class="logo">
-                </a>
-            </div>
-        </div>
-    </body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shivanshu Goyal | Developer</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #030308;
+        --accent: #39ff14;
+        --muted: #8eaebd;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Space Grotesk", sans-serif;
+        background: #010106;
+        color: #f4f7ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(circle at 20% 25%, rgba(57, 255, 20, 0.28), transparent 45%),
+          radial-gradient(circle at 75% 20%, rgba(3, 218, 198, 0.2), transparent 35%),
+          radial-gradient(circle at 50% 80%, rgba(57, 255, 20, 0.15), transparent 55%);
+        filter: blur(40px);
+        opacity: 0.9;
+        z-index: -2;
+        animation: haloDrift 18s ease-in-out infinite alternate;
+        mix-blend-mode: screen;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+            90deg,
+            rgba(57, 255, 20, 0.04),
+            rgba(57, 255, 20, 0.04) 1px,
+            transparent 1px,
+            transparent 12px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            rgba(3, 218, 198, 0.03),
+            rgba(3, 218, 198, 0.03) 2px,
+            transparent 2px,
+            transparent 14px
+          ),
+          url("data:image/svg+xml,%3Csvg width='2' height='2' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='1' fill='rgba(255,255,255,0.05)'/%3E%3C/svg%3E");
+        mix-blend-mode: screen;
+        opacity: 0.35;
+        z-index: -1;
+        animation: gridPulse 6s linear infinite;
+      }
+
+      @keyframes haloDrift {
+        0% {
+          transform: translate3d(-30px, -20px, 0) scale(0.98);
+          opacity: 0.8;
+        }
+        100% {
+          transform: translate3d(25px, 18px, 0) scale(1.05);
+          opacity: 1;
+        }
+      }
+
+      @keyframes gridPulse {
+        0% {
+          background-position: 0 0, 0 0, 0 0, 0 0;
+        }
+        50% {
+          background-position: 60px 60px, -45px -30px, 0 0, 0 0;
+        }
+        100% {
+        background-position: 0 0, 0 0, 0 0, 0 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body::before,
+      body::after {
+        animation: none;
+      }
+
+      body {
+        background: var(--bg);
+      }
+    }
+
+      .hero {
+        width: min(90vw, 560px);
+        padding: 3rem 2rem;
+        border-radius: 1.5rem;
+        border: 1px solid rgba(57, 255, 20, 0.2);
+        background: rgba(1, 3, 6, 0.85);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border: 1px solid rgba(57, 255, 20, 0.4);
+        pointer-events: none;
+        box-shadow: 0 0 25px rgba(57, 255, 20, 0.4);
+        mix-blend-mode: screen;
+      }
+
+      .avatar {
+        width: min(220px, 50vw);
+        height: min(220px, 50vw);
+        border-radius: 50%;
+        border: 4px solid rgba(57, 255, 20, 0.7);
+        overflow: hidden;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 0 30px rgba(57, 255, 20, 0.35);
+      }
+
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      h1 {
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        letter-spacing: 0.2rem;
+        margin: 0 0 0.5rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 2vw, 1.1rem);
+      }
+
+      .socials {
+        margin-top: 2rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+      }
+
+      .socials a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 1px solid rgba(57, 255, 20, 0.5);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: rgba(3, 3, 8, 0.65);
+        box-shadow: 0 0 15px rgba(57, 255, 20, 0.3);
+      }
+
+      .socials a:hover {
+        transform: translateY(-4px) scale(1.05);
+        box-shadow: 0 0 20px rgba(57, 255, 20, 0.6);
+      }
+
+      .socials img {
+        width: 52%;
+        filter: drop-shadow(0 0 4px rgba(57, 255, 20, 0.75));
+      }
+
+    </style>
+  </head>
+  <body>
+    <main class="hero">
+      <div class="avatar">
+        <img src="shivanshu.jpg" alt="Shivanshu Goyal" />
+      </div>
+      <h1>SHIVANSHU GOYAL</h1>
+      <p>Software Developer @ Microsoft</p>
+      <div class="socials">
+        <a href="https://github.com/" target="_blank" rel="noopener noreferrer">
+          <img src="github-logo.png" alt="GitHub logo" />
+        </a>
+        <a href="https://www.linkedin.com/" target="_blank" rel="noopener noreferrer">
+          <img src="linkedin-logo.png" alt="LinkedIn logo" />
+        </a>
+      </div>
+    </main>
+  </body>
 </html>
