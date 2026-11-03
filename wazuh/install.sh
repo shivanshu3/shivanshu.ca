@@ -85,6 +85,46 @@ lines = [line for line in lines if line.split('=',1)[0].strip() not in keys]
 options.write_text('\n'.join(lines + [key+'=0' for key in keys]) + '\n')
 PY
 }
+read_enrollment_password() {
+  IFS= read -r -s -p 'Enrollment password (hidden): ' password </dev/tty || fail 'Password entry cancelled.'
+  printf '\n' >/dev/tty
+}
+enroll_agent() {
+  local root=$1 manager=$2 agent_name=$3
+  local auth_fd password exit_code
+  export -n password
+  auth_file="$root/etc/authd.pass"
+  while true; do
+    [[ ! -s $root/etc/client.keys && ! -s $root/etc/client.keys.save ]] || fail 'An agent identity exists; enrollment stopped. Existing identities are never replaced.'
+    set -o noclobber
+    exec {auth_fd}> "$auth_file" || fail 'Enrollment password file already exists; it was not overwritten.'
+    set +o noclobber
+    auth_created=1
+    # Also restrict inherited POSIX ACL masks before writing any secret.
+    chmod 600 "$auth_file"
+    read_enrollment_password
+    [[ -n $password && ${#password} -le 1024 && $password != *$'\r'* ]] || fail 'Invalid enrollment password.'
+    printf '%s\n' "$password" >&"$auth_fd"
+    unset password
+    exec {auth_fd}>&-
+    exit_code=0
+    # Truncate the log each time so an earlier password failure cannot trigger a retry.
+    timeout 45 "$root/bin/agent-auth" -m "$manager" -A "$agent_name" -v "$root/etc/enrollment-manager.pem" >"$work_dir/enrollment.log" 2>&1 || exit_code=$?
+    rm -f -- "$auth_file"
+    auth_created=0
+    if (( exit_code == 0 )); then
+      [[ -s $root/etc/client.keys ]] || fail 'The manager did not issue an identity key.'
+      return
+    fi
+    [[ ! -s $root/etc/client.keys && ! -s $root/etc/client.keys.save ]] || fail 'An agent identity exists after enrollment failed; preserve it and inspect the agent logs before retrying.'
+    # Wazuh 4.14 reports password rejection explicitly; other failures need diagnosis.
+    if (( exit_code == 1 )) && grep -Eq 'agent-auth: ERROR: Invalid password(\. Unable to add agent)? \(from manager\)[[:space:]]*$' "$work_dir/enrollment.log"; then
+      printf 'Incorrect enrollment password. Please try again (Ctrl+C to cancel).\n'
+      continue
+    fi
+    fail "Enrollment failed. The agent remains stopped; check $root/logs/ossec.log and the manager logs. Existing identities are never replaced."
+  done
+}
 main() {
   if [[ ${1:-} == --help ]]; then
     printf 'Usage: sudo bash install.sh\nFresh Debian/Ubuntu or RHEL-compatible installation only.\n'
@@ -179,28 +219,7 @@ PY
   [[ -x /var/ossec/bin/agent-auth && ! -s /var/ossec/etc/client.keys ]] || fail 'Existing agent identity or unexpected package layout; enrollment stopped.'
   install -m 644 "$work_dir/certificate.pem" /var/ossec/etc/enrollment-manager.pem
   configure_agent /var/ossec "$manager" "$agent_name"
-  auth_file=/var/ossec/etc/authd.pass
-  local auth_fd
-  set -o noclobber
-  exec {auth_fd}> "$auth_file" || fail 'Enrollment password file already exists; it was not overwritten.'
-  set +o noclobber
-  auth_created=1
-  # Also restrict inherited POSIX ACL masks before writing any secret.
-  chmod 600 "$auth_file"
-  local password
-  export -n password
-  read -r -s -p 'Enrollment password (hidden): ' password </dev/tty
-  printf '\n' >/dev/tty
-  [[ -n $password && ${#password} -le 1024 && $password != *$'\r'* ]] || fail 'Invalid enrollment password.'
-  printf '%s\n' "$password" >&"$auth_fd"
-  unset password
-  exec {auth_fd}>&-
-  if ! timeout 45 /var/ossec/bin/agent-auth -m "$manager" -A "$agent_name" -v /var/ossec/etc/enrollment-manager.pem >"$work_dir/enrollment.log" 2>&1; then
-    fail 'Enrollment failed. The agent remains stopped; check /var/ossec/logs/ossec.log and the manager logs. Existing identities are never replaced.'
-  fi
-  [[ -s /var/ossec/etc/client.keys ]] || fail 'The manager did not issue an identity key.'
-  rm -f -- "$auth_file"
-  auth_created=0
+  enroll_agent /var/ossec "$manager" "$agent_name"
   systemctl daemon-reload
   systemctl enable --now wazuh-agent
   systemctl is-active --quiet wazuh-agent || fail 'Agent service did not start.'

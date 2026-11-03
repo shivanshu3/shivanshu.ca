@@ -103,6 +103,46 @@ function Write-EnrollmentPassword {
         if ($created -and -not $complete) { Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue }
     }
 }
+function Invoke-AgentEnrollment {
+    param([string]$Root, [string]$Manager, [string]$AgentName, [string[]]$Roots, [string]$Work)
+    $authFile = Join-Path $Root 'authd.pass'
+    $identity = Join-Path $Root 'client.keys'
+    $savedCa = Join-Path $Root 'enrollment-manager.pem'
+    $stdout = Join-Path $Work 'enrollment.stdout.log'
+    $stderr = Join-Path $Work 'enrollment.stderr.log'
+    while ($true) {
+        Assert-NoAgentIdentity $Roots
+        if (Test-Path -LiteralPath $authFile) { throw 'An enrollment password file already exists; it was not replaced.' }
+        $password = $null; $authCreated = $false
+        try {
+            $password = Read-Host 'Enrollment password (hidden)' -AsSecureString
+            Write-EnrollmentPassword $authFile $password
+            $authCreated = $true
+            $password.Dispose(); $password = $null
+            # Redirect to fresh per-attempt output, keeping passwords out of arguments.
+            $process = Start-Process -FilePath (Join-Path $Root 'agent-auth.exe') -ArgumentList "-m $Manager -A $AgentName -v `"$savedCa`"" -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            $exitCode = Wait-EnrollmentProcess $process
+        } finally {
+            if ($password) { $password.Dispose() }
+            if ($authCreated) { Remove-Item -LiteralPath $authFile -Force }
+        }
+        $output = [IO.File]::ReadAllText($stdout) + "`n" + [IO.File]::ReadAllText($stderr)
+        if (-not [string]::IsNullOrWhiteSpace($output)) { Write-Host $output.TrimEnd() }
+        if ($exitCode -eq 0) {
+            if (-not (Test-Path -LiteralPath $identity) -or (Get-Item -LiteralPath $identity).Length -eq 0) {
+                throw "agent-auth exited successfully but client.keys is missing or empty. The agent remains stopped; inspect '$Root\ossec.log'."
+            }
+            return
+        }
+        Assert-NoAgentIdentity $Roots
+        # Retry only a manager password rejection, never timeouts, TLS errors, or conflicts.
+        if ($exitCode -eq 1 -and $output -match '(?m)agent-auth: ERROR: Invalid password(?:\. Unable to add agent)? \(from manager\)\r?$') {
+            Write-Host 'Incorrect enrollment password. Please try again (Ctrl+C to cancel).'
+            continue
+        }
+        throw "agent-auth failed (exit $exitCode). The agent remains stopped. See the Wazuh output above and '$Root\ossec.log'."
+    }
+}
 function Set-AgentConfiguration {
     param([string]$Root, [string]$Manager, [string]$AgentName)
     $path = Join-Path $Root 'ossec.conf'
@@ -150,7 +190,6 @@ function Invoke-AgentInstall {
     $roots = @((Join-Path ${env:ProgramFiles(x86)} 'ossec-agent'), (Join-Path $env:ProgramFiles 'ossec-agent')) | Select-Object -Unique
     $work = Join-Path ([IO.Path]::GetTempPath()) ('wazuh-bootstrap-' + [Guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($work)
-    $authFile = $null; $authCreated = $false; $password = $null
     try {
         $manifest = Join-Path $work 'release.json'
         Get-VerifiedDownload "$BaseUrl/release.json" $manifest
@@ -197,28 +236,12 @@ function Invoke-AgentInstall {
         $savedCa = Join-Path $root 'enrollment-manager.pem'
         Copy-Item -LiteralPath $ca -Destination $savedCa
         Set-AgentConfiguration $root $manager $name
-        $authFile = Join-Path $root 'authd.pass'
-        $password = Read-Host 'Enrollment password (hidden)' -AsSecureString
-        if (Test-Path -LiteralPath $authFile) { throw 'An enrollment password file already exists; it was not replaced.' }
-        Write-EnrollmentPassword $authFile $password
-        $authCreated = $true
-        $password.Dispose(); $password = $null
-        $process = Start-Process -FilePath (Join-Path $root 'agent-auth.exe') -ArgumentList "-m $manager -A $name -v `"$savedCa`"" -PassThru -NoNewWindow
-        $exitCode = Wait-EnrollmentProcess $process
-        if ($exitCode -ne 0) {
-            throw "agent-auth failed (exit $exitCode). The agent remains stopped. See the Wazuh output above and '$root\ossec.log'."
-        }
-        if (-not (Test-Path -LiteralPath $identity) -or (Get-Item -LiteralPath $identity).Length -eq 0) {
-            throw "agent-auth exited successfully but client.keys is missing or empty. The agent remains stopped; inspect '$root\ossec.log'."
-        }
+        Invoke-AgentEnrollment -Root $root -Manager $manager -AgentName $name -Roots $roots -Work $work
         Set-Acl -LiteralPath $identity -AclObject (New-PrivateFileSecurity)
-        Remove-Item -LiteralPath $authFile -Force; $authCreated = $false
         Set-Service -Name WazuhSvc -StartupType Automatic
         Start-Service -Name WazuhSvc
         Write-Host "Agent installed and enrolled. Confirm $name is Active in the dashboard."
     } finally {
-        if ($password) { $password.Dispose() }
-        if ($authCreated -and $authFile) { Remove-Item -LiteralPath $authFile -Force -ErrorAction SilentlyContinue }
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
