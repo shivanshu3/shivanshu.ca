@@ -26,6 +26,25 @@ function Assert-NoAgentIdentity {
         }
     }
 }
+function Wait-EnrollmentProcess {
+    param($Process, [int]$TimeoutMilliseconds = 45000)
+    try {
+        # Windows PowerShell can otherwise return null ExitCode after Start-Process.
+        # https://github.com/PowerShell/PowerShell/issues/5421
+        $null = $Process.Handle
+        if (-not $Process.WaitForExit($TimeoutMilliseconds)) {
+            $Process.Kill()
+            $Process.WaitForExit()
+            throw 'Enrollment timed out. Preserve any client.keys file and inspect ossec.log before retrying.'
+        }
+        $Process.WaitForExit()
+        $exitCode = $Process.ExitCode
+        if ($null -eq $exitCode) {
+            throw 'Could not read the enrollment exit code. Preserve client.keys and check ossec.log; enrollment may have succeeded.'
+        }
+        return $exitCode
+    } finally { $Process.Dispose() }
+}
 function Assert-Certificate {
     param([string]$Path, [string]$Expected, [string]$Manager)
     $pem = [IO.File]::ReadAllText($Path)
@@ -176,11 +195,13 @@ function Invoke-AgentInstall {
         Write-EnrollmentPassword $authFile $password
         $authCreated = $true
         $password.Dispose(); $password = $null
-        $process = Start-Process -FilePath (Join-Path $root 'agent-auth.exe') -ArgumentList "-m $manager -A $name -v `"$savedCa`"" -PassThru -NoNewWindow -RedirectStandardOutput (Join-Path $work 'enrollment.out') -RedirectStandardError (Join-Path $work 'enrollment.err')
-        if (-not $process.WaitForExit(45000)) { $process.Kill(); throw 'Enrollment timed out.' }
-        $process.Refresh()
-        if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $identity) -or (Get-Item -LiteralPath $identity).Length -eq 0) {
-            throw 'Enrollment failed. The agent remains stopped; inspect the local ossec.log and manager logs. Existing identities are never replaced.'
+        $process = Start-Process -FilePath (Join-Path $root 'agent-auth.exe') -ArgumentList "-m $manager -A $name -v `"$savedCa`"" -PassThru -NoNewWindow
+        $exitCode = Wait-EnrollmentProcess $process
+        if ($exitCode -ne 0) {
+            throw "agent-auth failed (exit $exitCode). The agent remains stopped. See the Wazuh output above and '$root\ossec.log'."
+        }
+        if (-not (Test-Path -LiteralPath $identity) -or (Get-Item -LiteralPath $identity).Length -eq 0) {
+            throw "agent-auth exited successfully but client.keys is missing or empty. The agent remains stopped; inspect '$root\ossec.log'."
         }
         Set-Acl -LiteralPath $identity -AclObject (New-PrivateFileSecurity)
         Remove-Item -LiteralPath $authFile -Force; $authCreated = $false
