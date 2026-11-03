@@ -131,11 +131,19 @@ function Set-AgentConfiguration {
     $lines = @($lines | Where-Object { $_ -notmatch '^\s*(logcollector|wazuh_command|sca)\.remote_commands\s*=' })
     [IO.File]::WriteAllLines($options, $lines + @('logcollector.remote_commands=0','wazuh_command.remote_commands=0','sca.remote_commands=0'), [Text.UTF8Encoding]::new($false))
 }
-function Invoke-AgentInstall {
-    if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) { throw 'A 64-bit Windows system is required.' }
+function Assert-AgentArchitecture {
+    # A 32-bit PowerShell process exposes the host architecture through ARCHITEW6432.
     $architecture = [Environment]::GetEnvironmentVariable('PROCESSOR_ARCHITEW6432')
     if ([string]::IsNullOrEmpty($architecture)) { $architecture = [Environment]::GetEnvironmentVariable('PROCESSOR_ARCHITECTURE') }
-    if ($architecture -ine 'AMD64') { throw 'This Windows helper supports x86-64 CPUs only.' }
+    if ($architecture -inotIn @('AMD64', 'ARM64')) { throw 'This Windows helper requires an x86-64 or ARM64 CPU.' }
+    if ($architecture -ieq 'ARM64') {
+        # The pinned official Windows MSI is Intel/x86; use Windows' built-in emulation.
+        Write-Host 'ARM64 detected: the official x86 agent will run through Windows emulation. Verify agent health and event collection on this device after installation.'
+    }
+}
+function Invoke-AgentInstall {
+    if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) { throw 'A 64-bit Windows system is required.' }
+    Assert-AgentArchitecture
     $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run the installation command in PowerShell as Administrator.' }
     Remove-Item Env:WAZUH_REGISTRATION_PASSWORD -ErrorAction SilentlyContinue
