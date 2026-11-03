@@ -136,7 +136,8 @@ function Invoke-AgentEnrollment {
         }
         Assert-NoAgentIdentity $Roots
         # Retry only a manager password rejection, never timeouts, TLS errors, or conflicts.
-        if ($exitCode -eq 1 -and $output -match '(?m)agent-auth: ERROR: Invalid password(?:\. Unable to add agent)? \(from manager\)\r?$') {
+        # Tolerate trailing whitespace, including repeated Windows carriage returns.
+        if ($exitCode -eq 1 -and $output -match '(?m)agent-auth: ERROR: Invalid password(?:\. Unable to add agent)? \(from manager\)[ \t\r]*$') {
             Write-Host 'Incorrect enrollment password. Please try again (Ctrl+C to cancel).'
             continue
         }
