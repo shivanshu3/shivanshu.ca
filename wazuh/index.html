@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">
+  <title>Install a Wazuh agent · Shivanshu Goyal</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#030308;color:#f4f7ff}*{box-sizing:border-box}
+    body{max-width:960px;margin:3rem auto;padding:0 1.4rem;line-height:1.65}a{color:#85ef6e}h1{font-size:clamp(2rem,5vw,3rem);line-height:1.15;margin-bottom:.7rem}
+    h2{font-size:1.25rem;margin-top:0}.muted{color:#aab6c5}.intro{max-width:720px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem}
+    .panel{border:1px solid #344c3b;background:#0b1111;border-radius:1rem;padding:1.4rem;margin:1.5rem 0}code{font-family:ui-monospace,monospace;overflow-wrap:anywhere}
+    pre{background:#030808;border:1px solid #25322d;border-radius:.5rem;padding:1rem;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.78rem;max-height:16rem;overflow:auto}
+    button,.download{display:inline-block;background:#85ef6e;color:#071006;border:0;border-radius:.45rem;padding:.7rem 1rem;font-weight:650;cursor:pointer;text-decoration:none}
+    button:focus-visible,a:focus-visible{outline:3px solid #fff;outline-offset:4px}dt{font-weight:650}dd{margin:0 0 .7rem;overflow-wrap:anywhere}[hidden]{display:none!important}details{margin-top:1.5rem}summary{cursor:pointer}
+  </style>
+</head>
+<body>
+  <a href="/">← Home</a>
+  <h1>Add a device to Wazuh</h1>
+  <p class="intro muted">Install the official agent, give it a unique name, and enter your enrollment password in the local terminal. The website never receives your password.</p>
+  <div class="panel" id="status" role="status">Checking the release and public certificate…</div>
+  <main id="ready" hidden>
+    <p>Manager: <strong id="manager"></strong> · Agent version: <strong id="version"></strong></p>
+    <ol>
+      <li>Get the enrollment password from your password manager or the server owner.</li>
+      <li>Open an administrator terminal on the device and run its command below.</li>
+      <li>Confirm installation, choose a unique agent name, and enter the hidden password prompt. Check the dashboard for <strong>Active</strong> afterward.</li>
+    </ol>
+    <p class="muted">Use the Wazuh enrollment password, not your dashboard login. A Linux sudo prompt asks for your local computer password first.</p>
+    <div class="cards">
+      <section class="panel"><h2>Windows</h2>
+        <p class="muted">Windows on x86-64, PowerShell 5.1 or newer. Open PowerShell as Administrator. The helper checks the official MSI signature and installs without a password in the MSI arguments.</p>
+        <pre><code id="windows-command"></code></pre><button type="button" data-copy="windows-command">Copy Windows command</button>
+        <p><a href="install.ps1">Read/download the PowerShell script</a></p>
+      </section>
+      <section class="panel"><h2>Linux</h2>
+        <p class="muted">Debian/Ubuntu and RHEL/Fedora-compatible systems with systemd, on x86-64 or ARM64. Requires curl and sudo to start; missing Python/OpenSSL utilities are installed after confirmation.</p>
+        <pre><code id="linux-command"></code></pre><button type="button" data-copy="linux-command">Copy Linux command</button>
+        <p><a href="install.sh">Read/download the Bash script</a></p>
+      </section>
+    </div>
+    <p id="clipboard-status" role="status"></p>
+    <p>The device needs to reach the manager on TCP 1515 for enrollment and TCP 1514 for events. Existing agent installations are refused. A failed enrollment leaves the new agent stopped; use the official tools to diagnose/retry it.</p>
+    <details><summary>Security and manual installation</summary>
+      <p>These commands download to a file, check the script and release hashes, then run locally. Windows unblocks only that verified script; managed execution policies still apply. The helpers use official packages and native certificate-verified enrollment, remove the temporary password file, and leave remote commands and Active Response disabled. Enrollment is performed once; future re-enrollment uses the manual workflow.</p>
+      <p>Running downloaded code as administrator requires trusting this website and its GitHub account. Hashes copied from this same page do not protect against a compromised website. Review the scripts before running them.</p>
+      <p>Prefer the official manual workflow? Download this public certificate, use <strong>Deploy new agent</strong> in the dashboard, and supply the password and registration CA setting before starting the service.</p>
+      <a class="download" href="certificate.pem" download="wazuh-enrollment.pem">Download public enrollment certificate</a>
+      <dl><dt>Certificate expires</dt><dd id="expires"></dd><dt>Certificate SHA-256</dt><dd><code id="fingerprint"></code></dd></dl>
+      <p>The certificate is public. Passwords, private keys, and agent identity keys are never hosted here. After certificate renewal, update saved trust before new enrollments.</p>
+      <p><a href="https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/index.html">Official Wazuh enrollment documentation</a></p>
+    </details>
+  </main>
+  <noscript>JavaScript is needed to prepare verified copy commands. The public certificate and installer scripts can be downloaded and reviewed directly.</noscript>
+  <script>
+    const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
+    const sha256 = async bytes => hex(await crypto.subtle.digest('SHA-256', bytes));
+    const shellQuote = text => "'" + text.replaceAll("'", "'\"'\"'") + "'";
+    (async () => {
+      try {
+        if (location.protocol !== 'https:') throw new Error('Open this page over HTTPS to prepare installation commands.');
+        const names = ['release.json','certificate.json','certificate.pem','install.ps1','install.sh'];
+        const bytes = await Promise.all(names.map(async name => {
+          const response = await fetch(name, {cache:'no-store'});
+          if (!response.ok) throw new Error('The complete installer release has not been published yet.');
+          return response.arrayBuffer();
+        }));
+        const decode = value => new TextDecoder().decode(value);
+        const release = JSON.parse(decode(bytes[0])), metadata = JSON.parse(decode(bytes[1]));
+        const match = decode(bytes[2]).match(/^\s*-----BEGIN CERTIFICATE-----([A-Za-z0-9+/=\s]+)-----END CERTIFICATE-----\s*$/);
+        if (!match) throw new Error('Invalid public certificate.');
+        const der = Uint8Array.from(atob(match[1].replace(/\s/g,'')), c => c.charCodeAt(0));
+        const certificateHash = await sha256(der);
+        if (release.schema !== 1 || certificateHash !== release.certificate_sha256 || certificateHash !== metadata.sha256.replaceAll(':','').toLowerCase() || release.manager !== metadata.hostname || !(Date.parse(metadata.expires) > Date.now()+86400000)) throw new Error('Certificate/release mismatch or impending expiry. Contact the owner.');
+        const [releaseHash, psHash, shHash] = await Promise.all([sha256(bytes[0]),sha256(bytes[3]),sha256(bytes[4])]);
+        const base = 'https://shivanshu.ca/wazuh';
+        document.getElementById('windows-command').textContent = `[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $wazuhInstaller=Join-Path $env:TEMP ('wazuh-'+[Guid]::NewGuid().ToString('N')+'.ps1'); try { Invoke-WebRequest -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 300 '${base}/install.ps1' -OutFile $wazuhInstaller; if ((Get-FileHash $wazuhInstaller -Algorithm SHA256).Hash -ine '${psHash}') { throw 'Installer hash mismatch' }; Unblock-File -LiteralPath $wazuhInstaller; & $wazuhInstaller -ReleaseSha256 '${releaseHash}' } finally { Remove-Item -LiteralPath $wazuhInstaller -Force -ErrorAction SilentlyContinue }`;
+        const linux = `set -eu; wazuh_installer=$(mktemp); trap 'rm -f -- "$wazuh_installer"' EXIT; curl --fail --silent --show-error --proto '=https' --tlsv1.2 '${base}/install.sh' -o "$wazuh_installer"; printf '%s  %s\\n' '${shHash}' "$wazuh_installer" | sha256sum -c -; sudo bash "$wazuh_installer" --release-sha256 '${releaseHash}'`;
+        document.getElementById('linux-command').textContent = 'bash -c ' + shellQuote(linux);
+        document.getElementById('manager').textContent = release.manager;
+        document.getElementById('version').textContent = release.agent_version;
+        document.getElementById('expires').textContent = metadata.expires;
+        document.getElementById('fingerprint').textContent = metadata.sha256;
+        document.getElementById('status').textContent = 'Release verified. Choose the device operating system below.';
+        document.getElementById('ready').hidden = false;
+      } catch (error) { document.getElementById('status').textContent = error.message; }
+    })();
+    document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(document.getElementById(button.dataset.copy).textContent);
+        document.getElementById('clipboard-status').textContent = 'Command copied.';
+      } catch (_) { document.getElementById('clipboard-status').textContent = 'Select and copy the command text manually.'; }
+    }));
+  </script>
+</body>
+</html>
