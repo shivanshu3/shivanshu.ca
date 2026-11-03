@@ -87,13 +87,12 @@ PY
 }
 main() {
   if [[ ${1:-} == --help ]]; then
-    printf 'Usage: sudo bash install.sh --release-sha256 HASH\nFresh Debian/Ubuntu or RHEL-compatible installation only.\n'
+    printf 'Usage: sudo bash install.sh\nFresh Debian/Ubuntu or RHEL-compatible installation only.\n'
     return
   fi
-  [[ $# == 2 && $1 == --release-sha256 && $2 =~ ^[0-9a-fA-F]{64}$ ]] || fail 'Use the verified command from https://shivanshu.ca/wazuh/.'
-  local release_sha=${2,,}
+  (( $# == 0 )) || fail 'Usage: sudo bash install.sh'
   unset WAZUH_MANAGER WAZUH_REGISTRATION_SERVER WAZUH_REGISTRATION_PASSWORD WAZUH_REGISTRATION_CA WAZUH_AGENT_NAME WAZUH_AGENT_GROUP
-  (( EUID == 0 )) || fail 'Run the verified command with sudo.'
+  (( EUID == 0 )) || fail 'Run the installation command with sudo.'
   [[ -r /dev/tty ]] || fail 'An interactive terminal is required.'
   [[ ! -e /var/ossec ]] || fail 'An agent/manager directory already exists. Existing installations are not replaced.'
   command -v systemctl >/dev/null || fail 'A systemd-based Linux installation is required.'
@@ -132,7 +131,6 @@ main() {
   work_dir=$(mktemp -d)
   trap cleanup EXIT
   fetch_file "$base_url/release.json" "$work_dir/release.json"
-  verify_hash "$work_dir/release.json" "$release_sha" 256
   local -a fields
   mapfile -t fields < <(python3 - "$work_dir/release.json" "${package_key}_${architecture}" <<'PY'
 import json,re,sys
@@ -208,4 +206,4 @@ PY
   systemctl is-active --quiet wazuh-agent || fail 'Agent service did not start.'
   printf 'Agent installed and enrolled. Confirm %s is Active in the Wazuh dashboard.\n' "$agent_name"
 }
-if [[ ${BASH_SOURCE[0]} == "$0" ]]; then main "$@"; fi
+if [[ ${BASH_SOURCE[0]:-$0} == "$0" ]]; then main "$@"; fi

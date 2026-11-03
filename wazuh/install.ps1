@@ -1,6 +1,6 @@
 # One-time Windows agent installation. Passwords never enter process arguments.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidatePattern('\A[0-9a-fA-F]{64}\z')][string]$ReleaseSha256)
+param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $BaseUrl = 'https://shivanshu.ca/wazuh'
@@ -107,7 +107,7 @@ function Invoke-AgentInstall {
     if ([string]::IsNullOrEmpty($architecture)) { $architecture = [Environment]::GetEnvironmentVariable('PROCESSOR_ARCHITECTURE') }
     if ($architecture -ine 'AMD64') { throw 'This Windows helper supports x86-64 CPUs only.' }
     $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run the verified command in PowerShell as Administrator.' }
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run the installation command in PowerShell as Administrator.' }
     Remove-Item Env:WAZUH_REGISTRATION_PASSWORD -ErrorAction SilentlyContinue
     $roots = @((Join-Path ${env:ProgramFiles(x86)} 'ossec-agent'), (Join-Path $env:ProgramFiles 'ossec-agent')) | Select-Object -Unique
     if ((Get-Service -Name WazuhSvc -ErrorAction SilentlyContinue) -or @($roots | Where-Object { Test-Path -LiteralPath $_ }).Count) {
@@ -119,7 +119,6 @@ function Invoke-AgentInstall {
     try {
         $manifest = Join-Path $work 'release.json'
         Get-VerifiedDownload "$BaseUrl/release.json" $manifest
-        Assert-Hash $manifest $ReleaseSha256 SHA256
         $release = [IO.File]::ReadAllText($manifest) | ConvertFrom-Json
         if ($release.schema -ne 1 -or $release.agent_version -notmatch '\A4\.\d+\.\d+\z' -or $release.manager -notmatch '\A[a-z0-9][a-z0-9.-]*[a-z0-9]\z' -or $release.certificate_sha256 -notmatch '\A[a-f0-9]{64}\z') { throw 'Invalid release metadata.' }
         $manager = [string]$release.manager

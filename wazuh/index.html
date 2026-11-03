@@ -32,7 +32,7 @@
         <p class="muted">Windows on x86-64, PowerShell 5.1 or newer. Open PowerShell as Administrator. The helper checks the official MSI signature and installs without a password in the MSI arguments.</p>
         <pre><code id="windows-command"></code></pre><button type="button" data-copy="windows-command">Copy Windows command</button>
         <p><a href="install.ps1">Read/download the PowerShell script</a></p>
-        <p class="muted">The command uses a separate PowerShell process with <code>RemoteSigned</code> for this run. It leaves your saved execution policy unchanged. If your organization blocks scripts, check <code>Get-ExecutionPolicy -List</code> and contact its administrator.</p>
+        <p class="muted">The command uses <code>Bypass</code> only in the installer process. It leaves your saved PowerShell execution policy unchanged.</p>
       </section>
       <section class="panel"><h2>Linux</h2>
         <p class="muted">Debian/Ubuntu and RHEL/Fedora-compatible systems with systemd, on x86-64 or ARM64. Requires curl and sudo to start; missing Python/OpenSSL utilities are installed after confirmation.</p>
@@ -43,8 +43,8 @@
     <p id="clipboard-status" role="status"></p>
     <p>The device needs to reach the manager on TCP 1515 for enrollment and TCP 1514 for events. Existing agent installations are refused. A failed enrollment leaves the new agent stopped; use the official tools to diagnose/retry it.</p>
     <details><summary>Security and manual installation</summary>
-      <p>These commands download to a file, check the script and release hashes, then run locally. Those checks and temporary-file cleanup make them longer than a download-and-execute shortcut. Windows unblocks only that verified script and runs it in a separate process with <code>RemoteSigned</code>; Group Policy still applies. The helpers use official packages and native certificate-verified enrollment, remove the temporary password file, and leave remote commands and Active Response disabled. Enrollment is performed once; future re-enrollment uses the manual workflow.</p>
-      <p>Running downloaded code as administrator requires trusting this website and its GitHub account. Hashes copied from this same page do not protect against a compromised website. Review the scripts before running them.</p>
+      <p>These commands download and run the current installer over HTTPS. The helpers check official package hashes (and the Windows MSI signature), verify the enrollment certificate, remove the temporary password file, and leave remote commands and Active Response disabled. Enrollment is performed once; future re-enrollment uses the manual workflow.</p>
+      <p>Running downloaded code as administrator requires trusting this website and its GitHub account. A compromised website could replace both the installer and its checks. Review the scripts before running them.</p>
       <p>Prefer the official manual workflow? Download this public certificate, use <strong>Deploy new agent</strong> in the dashboard, and supply the password and registration CA setting before starting the service.</p>
       <a class="download" href="certificate.pem" download="wazuh-enrollment.pem">Download public enrollment certificate</a>
       <dl><dt>Certificate expires</dt><dd id="expires"></dd><dt>Certificate SHA-256</dt><dd><code id="fingerprint"></code></dd></dl>
@@ -52,15 +52,14 @@
       <p><a href="https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/index.html">Official Wazuh enrollment documentation</a></p>
     </details>
   </main>
-  <noscript>JavaScript is needed to prepare verified copy commands. The public certificate and installer scripts can be downloaded and reviewed directly.</noscript>
+  <noscript>JavaScript is needed to prepare the copy commands. The public certificate and installer scripts can be downloaded and reviewed directly.</noscript>
   <script>
     const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
     const sha256 = async bytes => hex(await crypto.subtle.digest('SHA-256', bytes));
-    const shellQuote = text => "'" + text.replaceAll("'", "'\"'\"'") + "'";
     (async () => {
       try {
         if (location.protocol !== 'https:') throw new Error('Open this page over HTTPS to prepare installation commands.');
-        const names = ['release.json','certificate.json','certificate.pem','install.ps1','install.sh'];
+        const names = ['release.json','certificate.json','certificate.pem'];
         const bytes = await Promise.all(names.map(async name => {
           const response = await fetch(name, {cache:'no-store'});
           if (!response.ok) throw new Error('The complete installer release has not been published yet.');
@@ -73,16 +72,14 @@
         const der = Uint8Array.from(atob(match[1].replace(/\s/g,'')), c => c.charCodeAt(0));
         const certificateHash = await sha256(der);
         if (release.schema !== 1 || certificateHash !== release.certificate_sha256 || certificateHash !== metadata.sha256.replaceAll(':','').toLowerCase() || release.manager !== metadata.hostname || !(Date.parse(metadata.expires) > Date.now()+86400000)) throw new Error('Certificate/release mismatch or impending expiry. Contact the owner.');
-        const [releaseHash, psHash, shHash] = await Promise.all([sha256(bytes[0]),sha256(bytes[3]),sha256(bytes[4])]);
         const base = 'https://shivanshu.ca/wazuh';
-        document.getElementById('windows-command').textContent = `[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $wazuhInstaller=Join-Path $env:TEMP ('wazuh-'+[Guid]::NewGuid().ToString('N')+'.ps1'); try { Invoke-WebRequest -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 300 '${base}/install.ps1' -OutFile $wazuhInstaller; if ((Get-FileHash $wazuhInstaller -Algorithm SHA256).Hash -ine '${psHash}') { throw 'Installer hash mismatch' }; Unblock-File -LiteralPath $wazuhInstaller -ErrorAction Stop; powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File $wazuhInstaller -ReleaseSha256 '${releaseHash}'; if ($LASTEXITCODE -ne 0) { throw 'Wazuh installer failed. See the error above.' } } finally { Remove-Item -LiteralPath $wazuhInstaller -Force -ErrorAction SilentlyContinue }`;
-        const linux = `set -eu; wazuh_installer=$(mktemp); trap 'rm -f -- "$wazuh_installer"' EXIT; curl --fail --silent --show-error --proto '=https' --tlsv1.2 '${base}/install.sh' -o "$wazuh_installer"; printf '%s  %s\\n' '${shHash}' "$wazuh_installer" | sha256sum -c -; sudo bash "$wazuh_installer" --release-sha256 '${releaseHash}'`;
-        document.getElementById('linux-command').textContent = 'bash -c ' + shellQuote(linux);
+        document.getElementById('windows-command').textContent = `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm ${base}/install.ps1 | iex"`;
+        document.getElementById('linux-command').textContent = `curl -fsSL ${base}/install.sh | sudo bash`;
         document.getElementById('manager').textContent = release.manager;
         document.getElementById('version').textContent = release.agent_version;
         document.getElementById('expires').textContent = metadata.expires;
         document.getElementById('fingerprint').textContent = metadata.sha256;
-        document.getElementById('status').textContent = 'Release verified. Choose the device operating system below.';
+        document.getElementById('status').textContent = 'Release and certificate match. Choose the device operating system below.';
         document.getElementById('ready').hidden = false;
       } catch (error) { document.getElementById('status').textContent = error.message; }
     })();
