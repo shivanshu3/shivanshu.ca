@@ -41,7 +41,7 @@
       </section>
     </div>
     <p id="clipboard-status" role="status"></p>
-    <p>The device needs to reach the manager on TCP 1515 for enrollment and TCP 1514 for events. Existing agent installations are refused. A failed enrollment leaves the new agent stopped; use the official tools to diagnose/retry it.</p>
+    <p>The device needs to reach the manager on TCP 1515 for enrollment and TCP 1514 for events. Existing enrollment identities are protected. Windows uses the official MSI to handle installation state; leftover folders alone do not block installation. A failed enrollment leaves the new agent stopped; use the official tools to diagnose/retry it.</p>
     <details><summary>Security and manual installation</summary>
       <p>These commands download and run the current installer over HTTPS. The helpers check official package hashes (and the Windows MSI signature), verify the enrollment certificate, remove the temporary password file, and leave remote commands and Active Response disabled. Enrollment is performed once; future re-enrollment uses the manual workflow.</p>
       <p>Running downloaded code as administrator requires trusting this website and its GitHub account. A compromised website could replace both the installer and its checks. Review the scripts before running them.</p>

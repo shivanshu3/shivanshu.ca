@@ -15,6 +15,17 @@ function Assert-Hash {
     param([string]$Path, [string]$Expected, [string]$Algorithm)
     if ((Get-FileHash -LiteralPath $Path -Algorithm $Algorithm).Hash -ine $Expected) { throw "$Algorithm verification failed." }
 }
+function Assert-NoAgentIdentity {
+    param([string[]]$Roots)
+    foreach ($root in $Roots) {
+        foreach ($name in @('client.keys', 'client.keys.save')) {
+            $identity = Join-Path $root $name
+            if ((Test-Path -LiteralPath $identity) -and (Get-Item -LiteralPath $identity).Length -gt 0) {
+                throw "An enrollment identity exists at '$identity'. Enrollment was not attempted. Preserve that identity or explicitly move the old agent files aside before a fresh enrollment."
+            }
+        }
+    }
+}
 function Assert-Certificate {
     param([string]$Path, [string]$Expected, [string]$Manager)
     $pem = [IO.File]::ReadAllText($Path)
@@ -110,9 +121,6 @@ function Invoke-AgentInstall {
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run the installation command in PowerShell as Administrator.' }
     Remove-Item Env:WAZUH_REGISTRATION_PASSWORD -ErrorAction SilentlyContinue
     $roots = @((Join-Path ${env:ProgramFiles(x86)} 'ossec-agent'), (Join-Path $env:ProgramFiles 'ossec-agent')) | Select-Object -Unique
-    if ((Get-Service -Name WazuhSvc -ErrorAction SilentlyContinue) -or @($roots | Where-Object { Test-Path -LiteralPath $_ }).Count) {
-        throw 'An agent installation already exists. Existing installations and identities are not replaced.'
-    }
     $work = Join-Path ([IO.Path]::GetTempPath()) ('wazuh-bootstrap-' + [Guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($work)
     $authFile = $null; $authCreated = $false; $password = $null
@@ -147,6 +155,9 @@ function Invoke-AgentInstall {
         }
         $process = Start-Process -FilePath msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart" -Wait -PassThru
         if ($process.ExitCode -notin @(0,3010)) { throw "MSI installation failed (exit $($process.ExitCode))." }
+        # MSI handles installation state and may restore a saved enrollment key.
+        # Protect identities before changing service settings or enrolling again.
+        Assert-NoAgentIdentity $roots
         $service = Get-Service -Name WazuhSvc -ErrorAction Stop
         if ($service.Status -ne 'Stopped') {
             Stop-Service -Name WazuhSvc -ErrorAction Stop
@@ -156,7 +167,6 @@ function Invoke-AgentInstall {
         $root = @($roots | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'agent-auth.exe') }) | Select-Object -First 1
         if (-not $root) { throw 'Unexpected package layout: agent-auth.exe is missing.' }
         $identity = Join-Path $root 'client.keys'
-        if ((Test-Path -LiteralPath $identity) -and (Get-Item -LiteralPath $identity).Length -gt 0) { throw 'An agent identity already exists; it was not replaced.' }
         $savedCa = Join-Path $root 'enrollment-manager.pem'
         Copy-Item -LiteralPath $ca -Destination $savedCa
         Set-AgentConfiguration $root $manager $name
