@@ -24,13 +24,13 @@
     <p>Manager: <strong id="manager"></strong> · Agent version: <strong id="version"></strong></p>
     <ol>
       <li>Get the enrollment password from your password manager or the server owner.</li>
-      <li>Open an administrator terminal on the device and run its command below.</li>
+      <li>Follow the Windows or Linux instructions below on the device you want to enroll.</li>
       <li>Confirm installation, choose a unique agent name, and enter the hidden password prompt. Check the dashboard for <strong>Active</strong> afterward.</li>
     </ol>
     <p class="muted">Use the Wazuh enrollment password, not your dashboard login. A Linux sudo prompt asks for your local computer password first.</p>
     <div class="cards">
       <section class="panel"><h2>Windows</h2>
-        <p class="muted">Open PowerShell as Administrator and run the command below.</p>
+        <p class="muted">Open Command Prompt as Administrator.</p>
         <pre><code id="windows-command"></code></pre><button type="button" data-copy="windows-command">Copy Windows command</button>
         <p><a href="install.ps1">Read/download the PowerShell script</a></p>
         <p class="muted">The command uses <code>Bypass</code> only in the installer process. It leaves your saved PowerShell execution policy unchanged.</p>
@@ -57,7 +57,7 @@
     <p><strong>This permanently deletes the local Wazuh agent, configuration, logs, enrollment keys, and saved agent backups.</strong> No backup is made. The helper shows its targets and requires you to type <code>REMOVE</code> before making changes.</p>
     <p>Windows uses the registered MSI, then removes leftover agent directories and agent-specific service/registry entries. Linux uses APT or DNF/Yum, then removes <code>/var/ossec</code>, agent service files, and its dedicated account. Linux refuses to run on a Wazuh manager. Use these commands on the device you want to reset.</p>
     <div class="cards">
-      <section><h2>Windows removal</h2><p class="muted">Open PowerShell as Administrator.</p>
+      <section><h2>Windows removal</h2><p class="muted">Open Command Prompt as Administrator.</p>
         <pre><code id="windows-uninstall-command">powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://shivanshu.ca/wazuh/uninstall.ps1 | iex"</code></pre>
         <button type="button" data-copy="windows-uninstall-command">Copy Windows removal command</button>
         <p><a href="uninstall.ps1">Read/download the removal script</a></p>
