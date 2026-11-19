@@ -75,8 +75,8 @@
   </section>
   <section class="workspace nato-reference" aria-labelledby="nato-reference-title">
     <h2 id="nato-reference-title">NATO phonetic alphabet</h2>
-    <p class="field-help">The full A–Z reference. The code words are the same for uppercase and lowercase letters.</p>
-    <div class="nato-reference-grid">${[0,9,18].map(t=>{let n=Object.entries(e).slice(t,t+9);return`<table><caption>Letters ${n[0][0].toUpperCase()}–${n.at(-1)[0].toUpperCase()}</caption><thead><tr><th scope="col">Letter</th><th scope="col">Code word</th></tr></thead><tbody>${n.map(([e,t])=>`<tr><th scope="row" class="mono">${e.toUpperCase()}</th><td>${t}</td></tr>`).join(``)}</tbody></table>`}).join(``)}</div>
+    <p class="field-help">The full A–Z reference.</p>
+    <dl class="nato-reference-grid">${Object.entries(e).map(([e,t])=>`<div><dt class="mono">${e.toUpperCase()}</dt><dd>${t}</dd></div>`).join(``)}</dl>
   </section>`,v=`
   <section class="intro">
     <p class="eyebrow">Every character, clear.</p>
