@@ -76,7 +76,7 @@
   <section class="workspace nato-reference" aria-labelledby="nato-reference-title">
     <h2 id="nato-reference-title">NATO phonetic alphabet</h2>
     <p class="field-help">The full A–Z reference.</p>
-    <dl class="nato-reference-grid">${Object.entries(e).map(([e,t])=>`<div><dt class="mono">${e.toUpperCase()}</dt><dd>${t}</dd></div>`).join(``)}</dl>
+    <dl class="nato-reference-list">${Object.entries(e).map(([e,t])=>`<div><dt class="mono">${e.toUpperCase()}</dt><dd>${t}</dd></div>`).join(``)}</dl>
   </section>`,v=`
   <section class="intro">
     <p class="eyebrow">Every character, clear.</p>
