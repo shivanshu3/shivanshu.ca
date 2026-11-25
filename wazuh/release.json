@@ -1,33 +1,33 @@
 {
   "schema": 1,
-  "agent_version": "4.14.9",
+  "agent_version": "4.14.11",
   "manager": "home.shivanshu.ca",
   "certificate_sha256": "d31bc2cbc2a8c6c110ded351b6fb68d41154dff1bf5824e7237e0b49125ad765",
   "packages": {
     "windows": {
-      "url": "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.9-1.msi",
-      "sha512": "ec49c7a39936bcd5cb480807a074dfc513f105d05025704a42a3401772d78bc1bc6a88404f0fe561a5afff3095f158481f1fb884469770cb4bdd899ef142d4f5",
-      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.9/wazuh-agent-4.14.9-1.msi.sha512"
+      "url": "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.11-1.msi",
+      "sha512": "ef7416efc09b01267a9fbccb40b64512c57743aa1f7d41800148f61778b2c2757b44fbcc6ee8fe4ab1a4cb32a8fd31712f825f08b62d61ca56e490542072609e",
+      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.11/wazuh-agent-4.14.11-1.msi.sha512"
     },
     "deb_amd64": {
-      "url": "https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.9-1_amd64.deb",
-      "sha512": "b359cd8b73c024afec048a220b9762606cd02eb74da14eab557b7d424ae530d9406e9071bbefab679bb045e8dcb28c3c19ffac60bda1675f0106e3d814576df4",
-      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.9/wazuh-agent_4.14.9-1_amd64.deb.sha512"
+      "url": "https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.11-1_amd64.deb",
+      "sha512": "be316bf792cf03c5af52d82b989d73771c47d3aab3e847bd97d5bfe65903fb3d510d5959348d69a3d23ab8e648161c716dd07e1d261856538315918e8e370ca6",
+      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.11/wazuh-agent_4.14.11-1_amd64.deb.sha512"
     },
     "deb_arm64": {
-      "url": "https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.9-1_arm64.deb",
-      "sha512": "414f59163ea80ee3cdbb90099ad93922abee26c98af6645e8887e433d4f005b3c7d30955169ab67a3587c6751a4489412d17a9ac6eed6ea885b56dfdc8234c5a",
-      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.9/wazuh-agent_4.14.9-1_arm64.deb.sha512"
+      "url": "https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.11-1_arm64.deb",
+      "sha512": "4e22844696a1269cbbee20c2c322cf7ed68874dd3460add77afbdd2767be722f6c47ed6d0996cf6d1a925d4b0b6e1adf3d1df52ede63ffabc62402b1b9c50f67",
+      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.11/wazuh-agent_4.14.11-1_arm64.deb.sha512"
     },
     "rpm_amd64": {
-      "url": "https://packages.wazuh.com/4.x/yum/wazuh-agent-4.14.9-1.x86_64.rpm",
-      "sha512": "d4ad14b5759a73ed8e047f1b834e9943bbedbb8e17914267ac906e89304b583cc4e78e088a8494260b49a644d29e133e65582f5fe2fd8902325a7e213a15acd6",
-      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.9/wazuh-agent-4.14.9-1.x86_64.rpm.sha512"
+      "url": "https://packages.wazuh.com/4.x/yum/wazuh-agent-4.14.11-1.x86_64.rpm",
+      "sha512": "7c7b4038ffce2b5b75c0623f4d9ac79eeaba5647f455939d20a2822fe9d22dcda88640e20cb046384aad8838cf8bfa4fc1f00f76922fdbf70cd201c9daf200a9",
+      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.11/wazuh-agent-4.14.11-1.x86_64.rpm.sha512"
     },
     "rpm_arm64": {
-      "url": "https://packages.wazuh.com/4.x/yum/wazuh-agent-4.14.9-1.aarch64.rpm",
-      "sha512": "355d2a5ae190e94c071dc49c61fec8c19ad6d6e80a7244232793273f20bb564226bf6f06e1eb8c37b9031da5fd2af8680dd5b5b6b1f9f4bac5a10434bc9dbef7",
-      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.9/wazuh-agent-4.14.9-1.aarch64.rpm.sha512"
+      "url": "https://packages.wazuh.com/4.x/yum/wazuh-agent-4.14.11-1.aarch64.rpm",
+      "sha512": "2999a4e0f83269ed1f8ffd2e912cae5cccc97a0bf262edb4692c89ad731dc76cdcf5109849aed0054aab4dd1959ec6f9a80587c76e5c7943cffa9ebb39fb711d",
+      "checksum_source": "https://packages.wazuh.com/4.x/checksums/wazuh/4.14.11/wazuh-agent-4.14.11-1.aarch64.rpm.sha512"
     }
   }
 }

@@ -186,7 +186,7 @@ function Invoke-AgentInstall {
     if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) { throw 'A 64-bit Windows system is required.' }
     Assert-AgentArchitecture
     $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run the installation command in PowerShell as Administrator.' }
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Open Command Prompt as Administrator and run the installation command from the website.' }
     Remove-Item Env:WAZUH_REGISTRATION_PASSWORD -ErrorAction SilentlyContinue
     $roots = @((Join-Path ${env:ProgramFiles(x86)} 'ossec-agent'), (Join-Path $env:ProgramFiles 'ossec-agent')) | Select-Object -Unique
     $work = Join-Path ([IO.Path]::GetTempPath()) ('wazuh-bootstrap-' + [Guid]::NewGuid().ToString('N'))

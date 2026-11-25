@@ -8,7 +8,7 @@ function Assert-RemovalAdministrator {
     if ($env:OS -ne 'Windows_NT') { throw 'Windows is required.' }
     $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw 'Run the removal command in PowerShell as Administrator.'
+        throw 'Open Command Prompt as Administrator and run the removal command from the website.'
     }
 }
 function Get-AgentProducts {
