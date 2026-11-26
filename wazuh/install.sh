@@ -14,8 +14,35 @@ cleanup() {
   if [[ -n $work_dir ]]; then rm -rf -- "$work_dir"; fi
 }
 fetch_file() {
-  [[ $1 == https://shivanshu.ca/wazuh/* || $1 == https://packages.wazuh.com/4.x/* ]] || fail 'Unexpected download origin.'
+  [[ $1 == https://shivanshu.ca/wazuh/* || $1 == https://packages.wazuh.com/4.x/* || $1 == https://packages.wazuh.com/key/GPG-KEY-WAZUH ]] || fail 'Unexpected download origin.'
   curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 --connect-timeout 15 --max-time 300 "$1" -o "$2"
+}
+configure_package_repository() {
+  local kind=$1 root=${2:-}
+  fetch_file 'https://packages.wazuh.com/key/GPG-KEY-WAZUH' "$work_dir/wazuh.asc"
+  case "$kind" in
+    deb)
+      gpg --batch --yes --dearmor --output "$work_dir/wazuh.gpg" "$work_dir/wazuh.asc"
+      install -d -m 755 "$root/usr/share/keyrings" "$root/etc/apt/sources.list.d"
+      install -m 644 "$work_dir/wazuh.gpg" "$root/usr/share/keyrings/wazuh.gpg"
+      printf '%s\n' 'deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main' > "$work_dir/wazuh.list"
+      install -m 644 "$work_dir/wazuh.list" "$root/etc/apt/sources.list.d/wazuh.list"
+      ;;
+    rpm)
+      rpm --import "$work_dir/wazuh.asc"
+      install -d -m 755 "$root/etc/yum.repos.d"
+      cat > "$work_dir/wazuh.repo" <<'REPO'
+[wazuh]
+name=Wazuh
+baseurl=https://packages.wazuh.com/4.x/yum/
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH
+REPO
+      install -m 644 "$work_dir/wazuh.repo" "$root/etc/yum.repos.d/wazuh.repo"
+      ;;
+    *) fail 'Unsupported package repository type.' ;;
+  esac
 }
 verify_hash() {
   local actual
@@ -151,14 +178,14 @@ main() {
     fail 'A Wazuh agent package is already installed.'
   fi
   case $(uname -m) in x86_64|amd64) architecture=amd64 ;; aarch64|arm64) architecture=arm64 ;; *) fail 'Supported CPU architectures: x86-64 and ARM64.' ;; esac
-  printf 'This installs the official Wazuh agent and any missing curl/OpenSSL/Python utilities.\n'
+  printf 'This installs the official Wazuh agent, missing utilities, and its signed repository for future OS package updates.\n'
   local answer
   read -r -p 'Continue? [y/N] ' answer </dev/tty
   [[ $answer == [yY] || $answer == [yY][eE][sS] ]] || fail 'Cancelled.'
-  if ! command -v python3 >/dev/null || ! command -v openssl >/dev/null || ! command -v curl >/dev/null; then
+  if ! command -v python3 >/dev/null || ! command -v openssl >/dev/null || ! command -v curl >/dev/null || { [[ $package_key == deb ]] && ! command -v gpg >/dev/null; }; then
     if [[ $package_key == deb ]]; then
       apt-get update
-      apt-get install -y ca-certificates curl openssl python3
+      apt-get install -y ca-certificates curl openssl python3 gnupg
     else
       local rpm_manager
       rpm_manager=$(command -v dnf || command -v yum)
@@ -207,6 +234,7 @@ PY
   [[ $agent_name =~ ^[a-zA-Z0-9_.-]{2,128}$ ]] || fail 'Agent names need 2-128 letters, digits, dots, underscores, or hyphens.'
   fetch_file "$package_url" "$work_dir/agent.$package_key"
   verify_hash "$work_dir/agent.$package_key" "$package_hash" 512
+  configure_package_repository "$package_key"
   if [[ $package_key == deb ]]; then
     apt-get install -y "$work_dir/agent.deb"
   else
@@ -223,6 +251,6 @@ PY
   systemctl daemon-reload
   systemctl enable --now wazuh-agent
   systemctl is-active --quiet wazuh-agent || fail 'Agent service did not start.'
-  printf 'Agent installed and enrolled. Confirm %s is Active in the Wazuh dashboard.\n' "$agent_name"
+  printf 'Agent installed and enrolled. Future updates use the OS package manager. Confirm %s is Active in the Wazuh dashboard.\n' "$agent_name"
 }
 if [[ ${BASH_SOURCE[0]:-$0} == "$0" ]]; then main "$@"; fi

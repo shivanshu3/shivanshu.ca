@@ -39,6 +39,7 @@
         <p class="muted">Debian/Ubuntu and RHEL/Fedora-compatible systems with systemd, on x86-64 or ARM64. Requires curl and sudo to start; missing Python/OpenSSL utilities are installed after confirmation.</p>
         <pre><code id="linux-command"></code></pre><button type="button" data-copy="linux-command">Copy Linux command</button>
         <p><a href="install.sh">Read/download the Bash script</a></p>
+        <p class="muted">The installer enables Wazuh's official signed package repository. Future agent updates are included in normal APT or DNF/Yum updates.</p>
       </section>
     </div>
     <p>The device needs to reach the manager on TCP 1515 for enrollment and TCP 1514 for events. Existing enrollment identities are protected. Windows uses the official MSI to handle installation state; leftover folders alone do not block installation. A failed enrollment leaves the new agent stopped; use the official tools to diagnose/retry it.</p>
